@@ -1,3 +1,4 @@
+import beam_broker
 import gleam/erlang/process
 import gleam/otp/actor
 import gleam/otp/factory_supervisor as factory
@@ -12,7 +13,7 @@ pub fn start_supervision_tree(
   reporters_name: process.Name(_),
 ) -> actor.StartResult(_) {
   let reporter_factory_supervisor =
-    factory.worker_child(todo as "blabla.start_reporter_actor")
+    factory.worker_child(todo as "beam_broker.start_reporter_actor")
     |> factory.named(reporters_name)
     |> factory.supervised
 
