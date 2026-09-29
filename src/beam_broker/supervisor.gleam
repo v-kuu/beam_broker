@@ -4,6 +4,12 @@ import gleam/otp/actor
 import gleam/otp/factory_supervisor as factory
 import gleam/otp/static_supervisor as supervisor
 
+type ChildName(msg) =
+  process.Name(msg)
+
+type FactoryName(msg, a) =
+  process.Name(factory.Message(ChildName(msg), a))
+
 /// Start a supervisor.
 ///
 /// The name argument of the supervisor can be fetched later with get_by_name
@@ -11,7 +17,7 @@ import gleam/otp/static_supervisor as supervisor
 /// The actor argument dictates the actor type this supervisor manages
 ///
 pub fn start_supervisor(
-  supervisor_name: process.Name(_),
+  supervisor_name: FactoryName(msg, a),
   actor: fn(process.Name(msg)) -> Result(actor.Started(a), actor.StartError),
 ) {
   let topic_factory_supervisor =
