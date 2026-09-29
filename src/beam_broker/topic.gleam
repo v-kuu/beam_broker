@@ -1,27 +1,14 @@
 import gleam/erlang/process
 import gleam/otp/actor
-import gleam/otp/factory_supervisor as factory
-import gleam/otp/static_supervisor as supervisor
 import gleam/string_tree
 
-pub fn start_topic_supervisor(
-  reporters_name: process.Name(_),
-) -> actor.StartResult(_) {
-  let reporter_factory_supervisor =
-    factory.worker_child(start_topic_actor)
-    |> factory.named(reporters_name)
-    |> factory.supervised
-
-  let control_plane =
-    todo as "a process that commands the supervisor to spawn children"
-
-  supervisor.new(supervisor.OneForOne)
-  |> supervisor.add(reporter_factory_supervisor)
-  |> supervisor.add(control_plane)
-  |> supervisor.start
-}
-
-fn start_topic_actor(name: process.Name(Message)) {
+/// Start a topic actor
+///
+/// Topic is an event log where other actors can publish to,
+/// and consume from, events. A topic is a prerequisite for
+/// both publishers and consumers
+///
+pub fn start_topic_actor(name: process.Name(Message)) {
   let assert Ok(started) =
     actor.new(string_tree.new())
     |> actor.named(name)

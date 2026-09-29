@@ -1,27 +1,42 @@
-import beam_broker
+import beam_broker/topic
 import gleam/erlang/process
 import gleam/otp/actor
 import gleam/otp/factory_supervisor as factory
 import gleam/otp/static_supervisor as supervisor
 
-/// Start the supervision tree.
+/// Start a supervisor.
 ///
-/// The name given as an argument can be used to find a reference to the supervisor with get_by_name
-/// to use start_child for spawning a new child process
+/// The name argument of the supervisor can be fetched later with get_by_name
+/// to use start_child for spawning a new child process.
+/// The actor argument dictates the actor type this supervisor manages
 ///
-pub fn start_supervision_tree(
-  reporters_name: process.Name(_),
-) -> actor.StartResult(_) {
-  let reporter_factory_supervisor =
-    factory.worker_child(todo as "beam_broker.start_reporter_actor")
-    |> factory.named(reporters_name)
+pub fn start_supervisor(
+  supervisor_name: process.Name(_),
+  actor: fn(process.Name(msg)) -> Result(actor.Started(a), actor.StartError),
+) {
+  let topic_factory_supervisor =
+    factory.worker_child(actor)
+    |> factory.named(supervisor_name)
     |> factory.supervised
 
-  let control_plane =
-    todo as "a process that commands the supervisor to spawn children"
+  Ok(topic_factory_supervisor)
+}
 
-  supervisor.new(supervisor.OneForOne)
-  |> supervisor.add(reporter_factory_supervisor)
-  |> supervisor.add(control_plane)
-  |> supervisor.start
+/// Start the main orchestrator
+///
+/// Registers all the supervisors and the control plane and starts
+/// the core OTP program
+///
+pub fn start_orchestrator() {
+  let assert Ok(topic_supervisor) =
+    start_supervisor(
+      process.new_name("topic_supervisor"),
+      topic.start_topic_actor,
+    )
+
+  let orchestrator =
+    supervisor.new(supervisor.OneForOne)
+    |> supervisor.add(topic_supervisor)
+    |> supervisor.start
+  Ok(orchestrator)
 }
