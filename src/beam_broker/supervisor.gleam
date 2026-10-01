@@ -4,6 +4,8 @@ import gleam/otp/actor
 import gleam/otp/factory_supervisor as factory
 import gleam/otp/static_supervisor as supervisor
 
+const topic_supervisor_name = "topic_supervisor"
+
 type ChildName(msg) =
   process.Name(msg)
 
@@ -36,7 +38,7 @@ pub fn start_supervisor(
 pub fn start_orchestrator() {
   let assert Ok(topic_supervisor) =
     start_supervisor(
-      process.new_name("topic_supervisor"),
+      process.new_name(topic_supervisor_name),
       topic.start_topic_actor,
     )
 

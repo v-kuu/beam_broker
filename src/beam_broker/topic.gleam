@@ -21,7 +21,7 @@ pub fn start_topic_actor(name: process.Name(Message)) {
 pub type Message {
   Shutdown
   Append(String)
-  Read(offset: Int, limit: Int, replyto: process.Pid)
+  Read(offset: Int, limit: Int, replyto: process.Subject(Result(String, Nil)))
   Crash
 }
 
@@ -37,13 +37,13 @@ fn handle_message(
       actor.continue(appended)
     }
 
-    Read(_, _, _) -> {
+    Read(_, _, replyto) -> {
       case string_tree.is_empty(topic) {
         True -> {
           actor.continue(topic)
         }
         False -> {
-          actor.send(todo, todo)
+          actor.send(replyto, Ok(string_tree.to_string(topic)))
           actor.continue(topic)
         }
       }
