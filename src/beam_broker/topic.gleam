@@ -9,13 +9,10 @@ import gleam/string_tree
 /// both publishers and consumers
 ///
 pub fn start_topic_actor(name: process.Name(Message)) {
-  let assert Ok(started) =
-    actor.new(string_tree.new())
-    |> actor.named(name)
-    |> actor.on_message(handle_message)
-    |> actor.start
-
-  Ok(started)
+  actor.new(string_tree.new())
+  |> actor.named(name)
+  |> actor.on_message(handle_message)
+  |> actor.start
 }
 
 pub type Message {
