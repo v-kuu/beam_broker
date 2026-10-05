@@ -2,14 +2,19 @@ import gleam/erlang/process
 import gleam/io
 import gleam/otp/actor
 
-pub type Args =
+type Args =
   #(process.Name(Message), process.Subject(Result(String, Nil)))
 
-/// Start a consumer actor
+/// Start a consumer child
 ///
 /// Consumer is what receives events published to
 /// the topic it subscribes to
-pub fn start_consumer_actor(
+pub fn start_child(args: Args) {
+  let #(name, topic) = args
+  start_actor(name, topic)
+}
+
+fn start_actor(
   name: process.Name(Message),
   topic: process.Subject(Result(String, Nil)),
 ) {

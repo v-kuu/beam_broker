@@ -1,9 +1,15 @@
 import gleam/erlang/process
 import gleam/otp/actor
-import gleam/string_tree
+import logging
+import simplifile
 
-pub type Args =
-  #(process.Name(Message))
+pub type Args {
+  Args(name: process.Name(Message), file_path: String)
+}
+
+pub type State {
+  State(file_path: String, next_offset: Int)
+}
 
 /// Start a topic actor
 ///
@@ -11,9 +17,12 @@ pub type Args =
 /// and consume from, events. A topic is a prerequisite for
 /// both publishers and consumers
 ///
-pub fn start_topic_actor(name: process.Name(Message)) {
-  actor.new(string_tree.new())
-  |> actor.named(name)
+pub fn start_actor(args: Args) {
+  let state = State(file_path: args.file_path, next_offset: 0)
+  let _ = simplifile.create_file(args.file_path)
+
+  actor.new(state)
+  |> actor.named(args.name)
   |> actor.on_message(handle_message)
   |> actor.start
 }
@@ -25,26 +34,29 @@ pub type Message {
   Crash
 }
 
-fn handle_message(
-  topic: string_tree.StringTree,
-  message: Message,
-) -> actor.Next(string_tree.StringTree, Message) {
+fn handle_message(state: State, message: Message) {
   case message {
     Shutdown -> actor.stop()
 
     Append(input) -> {
-      let appended = string_tree.append(topic, input)
-      actor.continue(appended)
+      case simplifile.append(state.file_path, input) {
+        Ok(_) -> actor.continue(state)
+        Error(error) -> {
+          logging.log(logging.Error, simplifile.describe_error(error))
+          actor.continue(state)
+        }
+      }
     }
 
     Read(_, _, replyto) -> {
-      case string_tree.is_empty(topic) {
-        True -> {
-          actor.continue(topic)
+      case simplifile.read(state.file_path) {
+        Ok(result) -> {
+          actor.send(replyto, Ok(result))
+          actor.continue(state)
         }
-        False -> {
-          actor.send(replyto, Ok(string_tree.to_string(topic)))
-          actor.continue(topic)
+        Error(error) -> {
+          logging.log(logging.Error, simplifile.describe_error(error))
+          actor.continue(state)
         }
       }
     }
