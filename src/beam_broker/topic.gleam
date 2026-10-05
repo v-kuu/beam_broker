@@ -2,6 +2,9 @@ import gleam/erlang/process
 import gleam/otp/actor
 import gleam/string_tree
 
+pub type Args =
+  #(process.Name(Message))
+
 /// Start a topic actor
 ///
 /// Topic is an event log where other actors can publish to,

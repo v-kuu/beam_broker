@@ -1,3 +1,4 @@
+import beam_broker/consumer
 import beam_broker/topic
 import gleam/erlang/process
 import gleam/otp/actor
@@ -6,11 +7,10 @@ import gleam/otp/static_supervisor as supervisor
 
 const topic_supervisor_name = "topic_supervisor"
 
-type ChildName(msg) =
-  process.Name(msg)
+const consumer_supervisor_name = "consumer_supervisor"
 
-type FactoryName(msg, a) =
-  process.Name(factory.Message(ChildName(msg), a))
+type FactoryName(argument, data) =
+  process.Name(factory.Message(argument, data))
 
 /// Start a supervisor.
 ///
@@ -19,15 +19,12 @@ type FactoryName(msg, a) =
 /// The actor argument dictates the actor type this supervisor manages
 ///
 pub fn start_supervisor(
-  supervisor_name: FactoryName(msg, a),
-  actor: fn(process.Name(msg)) -> Result(actor.Started(a), actor.StartError),
+  supervisor_name: FactoryName(argument, data),
+  start_actor: fn(argument) -> Result(actor.Started(data), actor.StartError),
 ) {
-  let topic_factory_supervisor =
-    factory.worker_child(actor)
-    |> factory.named(supervisor_name)
-    |> factory.supervised
-
-  Ok(topic_factory_supervisor)
+  factory.worker_child(start_actor)
+  |> factory.named(supervisor_name)
+  |> factory.supervised
 }
 
 /// Start the main orchestrator
@@ -36,15 +33,30 @@ pub fn start_supervisor(
 /// the core OTP program
 ///
 pub fn start_orchestrator() {
-  let assert Ok(topic_supervisor) =
-    start_supervisor(
-      process.new_name(topic_supervisor_name),
-      topic.start_topic_actor,
-    )
+  let topic_supervisor =
+    factory.worker_child(start_topic_child)
+    |> factory.named(process.new_name(topic_supervisor_name))
+    |> factory.supervised
+
+  let consumer_supervisor =
+    factory.worker_child(start_consumer_child)
+    |> factory.named(process.new_name(consumer_supervisor_name))
+    |> factory.supervised
 
   let orchestrator =
     supervisor.new(supervisor.OneForOne)
     |> supervisor.add(topic_supervisor)
+    |> supervisor.add(consumer_supervisor)
     |> supervisor.start
   Ok(orchestrator)
+}
+
+fn start_consumer_child(args: consumer.Args) {
+  let #(name, topic) = args
+  consumer.start_consumer_actor(name, topic)
+}
+
+fn start_topic_child(args: topic.Args) {
+  let #(name) = args
+  topic.start_topic_actor(name)
 }

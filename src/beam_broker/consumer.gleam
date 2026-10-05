@@ -2,6 +2,9 @@ import gleam/erlang/process
 import gleam/io
 import gleam/otp/actor
 
+pub type Args =
+  #(process.Name(Message), process.Subject(Result(String, Nil)))
+
 /// Start a consumer actor
 ///
 /// Consumer is what receives events published to
