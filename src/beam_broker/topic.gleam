@@ -1,13 +1,14 @@
+import beam_broker/protocol.{type TopicMessage}
 import gleam/erlang/process
 import gleam/otp/actor
 import logging
 import simplifile
 
 pub type Args {
-  Args(name: process.Name(Message), file_path: String)
+  Args(name: process.Name(TopicMessage), file_path: String)
 }
 
-pub type State {
+type State {
   State(file_path: String, next_offset: Int)
 }
 
@@ -27,18 +28,9 @@ pub fn start_actor(args: Args) {
   |> actor.start
 }
 
-pub type Message {
-  Shutdown
-  Append(String)
-  Read(offset: Int, limit: Int, replyto: process.Subject(Result(String, Nil)))
-  Crash
-}
-
-fn handle_message(state: State, message: Message) {
+fn handle_message(state: State, message: TopicMessage) {
   case message {
-    Shutdown -> actor.stop()
-
-    Append(input) -> {
+    protocol.Append(input) -> {
       case simplifile.append(state.file_path, input) {
         Ok(_) -> actor.continue(state)
         Error(error) -> {
@@ -48,10 +40,11 @@ fn handle_message(state: State, message: Message) {
       }
     }
 
-    Read(_, _, replyto) -> {
+    protocol.Read(_, _, replyto) -> {
+      let return = process.named_subject(replyto)
       case simplifile.read(state.file_path) {
         Ok(result) -> {
-          actor.send(replyto, Ok(result))
+          actor.send(return, protocol.Receive(result))
           actor.continue(state)
         }
         Error(error) -> {
@@ -59,10 +52,6 @@ fn handle_message(state: State, message: Message) {
           actor.continue(state)
         }
       }
-    }
-
-    Crash -> {
-      actor.stop_abnormal("Debug crash")
     }
   }
 }

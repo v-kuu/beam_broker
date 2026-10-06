@@ -1,14 +1,13 @@
 import gleam/erlang/process
 
 pub type TopicMessage {
-  Shutdown
   Append(String)
-  Read(offset: Int, limit: Int, replyto: process.Subject(ConsumerMessage))
-  Crash
+  Read(offset: Int, limit: Int, replyto: process.Name(ConsumerMessage))
 }
 
 pub type ConsumerMessage {
   Poll
+  Receive(response: String)
 }
 
 pub type PublisherMessage {
