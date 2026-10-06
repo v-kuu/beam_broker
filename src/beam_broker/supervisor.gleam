@@ -1,4 +1,5 @@
 import beam_broker/consumer
+import beam_broker/publisher
 import beam_broker/topic
 import gleam/erlang/process
 import gleam/otp/actor
@@ -8,6 +9,8 @@ import gleam/otp/static_supervisor as supervisor
 const topic_supervisor_name = "topic_supervisor"
 
 const consumer_supervisor_name = "consumer_supervisor"
+
+const publisher_supervisor_name = "publisher_supervisor"
 
 type FactoryName(argument, data) =
   process.Name(factory.Message(argument, data))
@@ -39,14 +42,20 @@ pub fn start_orchestrator() {
     |> factory.supervised
 
   let consumer_supervisor =
-    factory.worker_child(consumer.start_child)
+    factory.worker_child(consumer.start_actor)
     |> factory.named(process.new_name(consumer_supervisor_name))
+    |> factory.supervised
+
+  let publisher_supervisor =
+    factory.worker_child(publisher.start_actor)
+    |> factory.named(process.new_name(publisher_supervisor_name))
     |> factory.supervised
 
   let orchestrator =
     supervisor.new(supervisor.OneForOne)
     |> supervisor.add(topic_supervisor)
     |> supervisor.add(consumer_supervisor)
+    |> supervisor.add(publisher_supervisor)
     |> supervisor.start
   Ok(orchestrator)
 }

@@ -11,5 +11,5 @@ pub type ConsumerMessage {
 }
 
 pub type PublisherMessage {
-  Publish
+  Publish(event: String)
 }
