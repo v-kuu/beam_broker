@@ -25,7 +25,6 @@ fn handle_message(state: Args, message: ConsumerMessage) {
     protocol.Poll -> {
       let subject = process.named_subject(state.topic)
       process.send(subject, protocol.Read(0, 0, state.name))
-
       process.send_after(return, 5000, protocol.Poll)
       actor.continue(state)
     }
