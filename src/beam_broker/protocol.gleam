@@ -11,5 +11,30 @@ pub type ConsumerMessage {
 }
 
 pub type PublisherMessage {
-  Publish(event: String)
+  Write(event: String)
+}
+
+pub type Request {
+  CreateTopic(name: String)
+  SubscribeToTopic(topic: String)
+  RegisterPublisher(topic: String)
+  Publish(name: String, event: String)
+  ListTopics
+}
+
+pub type Response {
+  TopicCreated
+  Subscribed
+  Registered
+  Published
+
+  Topics(List(String))
+
+  TopicAlreadyExists
+  TopicNotFound
+  PublishFailed
+}
+
+pub type BrokerMessage {
+  Request(request: Request, reply_to: process.Subject(Response))
 }

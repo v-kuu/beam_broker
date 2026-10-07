@@ -24,7 +24,7 @@ pub fn start_actor(args: Args) {
 
 fn handle_message(state: State, message: PublisherMessage) {
   case message {
-    protocol.Publish(input) -> {
+    protocol.Write(input) -> {
       let subject = process.named_subject(state.topic)
       process.send(subject, protocol.Append(input))
       actor.continue(state)
