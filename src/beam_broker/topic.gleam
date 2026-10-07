@@ -5,10 +5,10 @@ import logging
 import simplifile
 
 pub type Args {
-  Args(name: process.Name(TopicMessage), file_path: String)
+  Args(file_path: String)
 }
 
-type State {
+pub type State {
   State(file_path: String, next_offset: Int)
 }
 
@@ -23,7 +23,6 @@ pub fn start_actor(args: Args) {
   let _ = simplifile.create_file(args.file_path)
 
   actor.new(state)
-  |> actor.named(args.name)
   |> actor.on_message(handle_message)
   |> actor.start
 }
