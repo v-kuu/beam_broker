@@ -2,7 +2,7 @@ import gleam/erlang/process
 
 pub type TopicMessage {
   Append(String)
-  Read(offset: Int, limit: Int, replyto: process.Name(ConsumerMessage))
+  Read(replyto: process.Subject(ConsumerMessage))
 }
 
 pub type ConsumerMessage {

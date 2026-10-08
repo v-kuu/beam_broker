@@ -1,5 +1,4 @@
 import beam_broker/protocol.{type TopicMessage}
-import gleam/erlang/process
 import gleam/otp/actor
 import logging
 import simplifile
@@ -39,11 +38,10 @@ fn handle_message(state: State, message: TopicMessage) {
       }
     }
 
-    protocol.Read(_, _, replyto) -> {
-      let return = process.named_subject(replyto)
+    protocol.Read(replyto) -> {
       case simplifile.read(state.file_path) {
         Ok(result) -> {
-          actor.send(return, protocol.Receive(result))
+          actor.send(replyto, protocol.Receive(result))
           actor.continue(state)
         }
         Error(error) -> {
