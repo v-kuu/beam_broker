@@ -7,6 +7,7 @@ flowchart TD
 
         Root --> Broker(Broker)
         Root --> Wisp(Wisp/http server)
+        Wisp --> Lustre(Lustre SSR)
     end
 
     subgraph core[Core Program]
