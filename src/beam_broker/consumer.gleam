@@ -66,11 +66,11 @@ fn handle_message(state: State, message: ConsumerMessage) {
           let new_events = list.append(state.events, received.events)
           let new_state =
             State(..state, events: new_events, event_index: received.new_index)
-          process.send_after(state.own, 5000, protocol.Poll)
+          process.send_after(state.own, 1000, protocol.Poll)
           actor.continue(new_state)
         }
         Error(_) -> {
-          process.send_after(state.own, 5000, protocol.Poll)
+          process.send_after(state.own, 1000, protocol.Poll)
           actor.continue(state)
         }
       }
