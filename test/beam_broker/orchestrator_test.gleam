@@ -113,8 +113,8 @@ pub fn publish_read_test() {
     Error(_) -> panic as "failed to publish event"
   }
 
-  process.sleep(2000)
   // wait for consumer to poll for the event
+  process.sleep(2000)
 
   // read
   let assert Ok(events) =
@@ -130,10 +130,10 @@ pub fn publish_read_test() {
 fn mock_orchestrator(
   test_name: String,
 ) -> process.Subject(protocol.BrokerMessage) {
-  let topic_reference = process.new_name(test_name <> "topic_sup")
-  let consumer_reference = process.new_name(test_name <> "consumer_sup")
-  let publisher_reference = process.new_name(test_name <> "pub_sup")
-  let broker_reference = process.new_name(test_name <> "broker")
+  let topic_reference = process.new_name(test_name <> "_topic_sup")
+  let consumer_reference = process.new_name(test_name <> "_consumer_sup")
+  let publisher_reference = process.new_name(test_name <> "_pub_sup")
+  let broker_reference = process.new_name(test_name <> "_broker")
 
   let topic_supervisor =
     factory.worker_child(topic.start_actor)
