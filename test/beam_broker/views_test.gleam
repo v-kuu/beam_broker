@@ -35,7 +35,10 @@ pub fn publisher_options_empty_test() {
 pub fn publisher_options_with_items_test() {
   let html = views.publisher_options(["publisher_a"]) |> element.to_string
   assert string.contains(html, "-- Select a Publisher --")
-  assert string.contains(html, "<option value=\"publisher_a\">publisher_a</option>")
+  assert string.contains(
+    html,
+    "<option value=\"publisher_a\">publisher_a</option>",
+  )
 }
 
 pub fn consumer_options_empty_test() {
@@ -46,7 +49,10 @@ pub fn consumer_options_empty_test() {
 pub fn consumer_options_with_items_test() {
   let html = views.consumer_options(["consumer_1"]) |> element.to_string
   assert string.contains(html, "-- Select a Consumer --")
-  assert string.contains(html, "<option value=\"consumer_1\">consumer_1</option>")
+  assert string.contains(
+    html,
+    "<option value=\"consumer_1\">consumer_1</option>",
+  )
 }
 
 pub fn feedback_renders_test() {
