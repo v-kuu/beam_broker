@@ -308,10 +308,11 @@ pub fn consumer_events(events: List(String)) -> Element(msg) {
   case events {
     [] -> consumer_events_empty()
     _ ->
-      html.div([],
+      html.div(
+        [],
         list.map(events, fn(event_content) {
           html.div([attribute.value("")], [element.text(event_content)])
-        })
+        }),
       )
   }
 }
