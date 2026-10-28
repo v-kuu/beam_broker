@@ -69,13 +69,19 @@ fn load_file(file_path: String) -> Result(Int, Nil) {
               Ok(list.length(list))
             }
             Error(error) -> {
-              logging.log(logging.Warning, simplifile.describe_error(error))
+              logging.log(
+                logging.Warning,
+                "load_file: " <> simplifile.describe_error(error),
+              )
               Error(Nil)
             }
           }
         }
         _ -> {
-          logging.log(logging.Warning, simplifile.describe_error(error))
+          logging.log(
+            logging.Warning,
+            "load_file: " <> simplifile.describe_error(error),
+          )
           Error(Nil)
         }
       }
@@ -108,7 +114,10 @@ fn append_event(
       new_state
     }
     Error(error) -> {
-      logging.log(logging.Warning, simplifile.describe_error(error))
+      logging.log(
+        logging.Warning,
+        "append_event: " <> simplifile.describe_error(error),
+      )
       process.send(reply_to, Error(Nil))
       state
     }
@@ -125,12 +134,10 @@ fn read_events(
       let unseen_events =
         split_to_list(result)
         |> list.filter(fn(e) { e != "" })
-        |> list.reverse()
-        |> list.take(state.event_count - consumer_index)
-        |> list.reverse()
+        |> list.drop(consumer_index)
         |> list.map(fn(e) { string.trim(e) })
 
-      actor.send(
+      process.send(
         reply_to,
         Ok(protocol.ReadResult(
           events: unseen_events,
@@ -140,7 +147,10 @@ fn read_events(
       state
     }
     Error(error) -> {
-      logging.log(logging.Error, simplifile.describe_error(error))
+      logging.log(
+        logging.Error,
+        "read_events: " <> simplifile.describe_error(error),
+      )
       actor.send(reply_to, Error(Nil))
       state
     }
