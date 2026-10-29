@@ -225,7 +225,18 @@ fn create_publisher(
   reply_to: Subject(Result(Nil, protocol.CreatePublisherError)),
 ) {
   case dict.get(state.topics, topic) {
-    Ok(found) -> new_publisher(topic, found, state, reply_to)
+    Ok(found) ->
+      case dict.get(state.publishers, topic) {
+        Ok(_) -> {
+          logging.log(
+            logging.Warning,
+            "consumer already initialized: " <> topic,
+          )
+          process.send(reply_to, Error(protocol.PublisherAlreadyExists))
+          state
+        }
+        Error(_) -> new_publisher(topic, found, state, reply_to)
+      }
     Error(_) -> {
       process.send(reply_to, Error(protocol.PublisherTargetNotFound))
       logging.log(logging.Warning, "topic not found: " <> topic)

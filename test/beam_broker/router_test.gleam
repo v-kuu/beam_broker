@@ -57,6 +57,7 @@ pub fn consumers_post_test() {
   let response = router.handle_request(req, ctx)
   assert response.status == 200
 
+  // ok, duplicate, empty
   let test_cases = [#(test_name, 200), #(test_name, 400), #("", 400)]
 
   test_cases
@@ -65,6 +66,41 @@ pub fn consumers_post_test() {
 
     let req =
       simulate.browser_request(http.Post, "/api/consumers")
+      |> simulate.form_body([#("topic_name", payload)])
+
+    let response = router.handle_request(req, ctx)
+    assert response.status == expected_status
+  })
+  let _ = simplifile.delete_file(test_name)
+}
+
+pub fn publishers_post_test() {
+  let test_name = "publishers_post_test"
+  let ctx = router.Context(mock_orchestrator(test_name))
+
+  // topic not found
+  let req =
+    simulate.browser_request(http.Post, "/api/publishers")
+    |> simulate.form_body([#("topic_name", test_name)])
+  let response = router.handle_request(req, ctx)
+  assert response.status == 400
+
+  // create topic first
+  let req =
+    simulate.browser_request(http.Post, "/api/topics")
+    |> simulate.form_body([#("topic_name", test_name)])
+  let response = router.handle_request(req, ctx)
+  assert response.status == 200
+
+  // ok, duplicate, empty
+  let test_cases = [#(test_name, 200), #(test_name, 400), #("", 400)]
+
+  test_cases
+  |> list.each(fn(test_case) {
+    let #(payload, expected_status) = test_case
+
+    let req =
+      simulate.browser_request(http.Post, "/api/publishers")
       |> simulate.form_body([#("topic_name", payload)])
 
     let response = router.handle_request(req, ctx)
