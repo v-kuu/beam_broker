@@ -179,8 +179,7 @@ fn publish_event(request: Request, ctx: Context) -> Response {
   use form_data <- wisp.require_form(request)
 
   let publisher_result =
-    list.key_find(form_data.values, "topic_name")
-    |> result.lazy_or(fn() { list.key_find(form_data.values, "publisher_name") })
+    list.key_find(form_data.values, "publisher_name")
     |> result.map(string.trim)
 
   let payload_result =

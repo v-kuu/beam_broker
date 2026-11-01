@@ -10,6 +10,7 @@ import gleam/list
 import gleam/otp/factory_supervisor as factory
 import gleam/otp/static_supervisor as supervisor
 import gleam/otp/supervision
+import gleam/string
 import gleeunit
 import simplifile
 import wisp/simulate
@@ -106,6 +107,60 @@ pub fn publishers_post_test() {
     let response = router.handle_request(req, ctx)
     assert response.status == expected_status
   })
+  let _ = simplifile.delete_file(test_name)
+}
+
+pub fn publish_post_test() {
+  let test_name = "publish_post_test"
+  let ctx = router.Context(mock_orchestrator(test_name))
+
+  // publisher not found
+  let payload = "Hello world!"
+  let req =
+    simulate.browser_request(http.Post, "/api/publish")
+    |> simulate.form_body([
+      #("publisher_name", test_name),
+      #("payload", payload),
+    ])
+  let response = router.handle_request(req, ctx)
+  assert response.status == 400
+
+  // create topic and publisher
+  let req =
+    simulate.browser_request(http.Post, "/api/topics")
+    |> simulate.form_body([#("topic_name", test_name)])
+  let response = router.handle_request(req, ctx)
+  assert response.status == 200
+
+  let req =
+    simulate.browser_request(http.Post, "/api/publishers")
+    |> simulate.form_body([#("topic_name", test_name)])
+  let response = router.handle_request(req, ctx)
+  assert response.status == 200
+
+  // empty payload
+  let req =
+    simulate.browser_request(http.Post, "/api/publish")
+    |> simulate.form_body([#("publisher_name", test_name), #("payload", "")])
+  let response = router.handle_request(req, ctx)
+  assert response.status == 400
+
+  // ok
+  let req =
+    simulate.browser_request(http.Post, "/api/publish")
+    |> simulate.form_body([
+      #("publisher_name", test_name),
+      #("payload", payload),
+    ])
+  let response = router.handle_request(req, ctx)
+  assert response.status == 200
+
+  case simplifile.read(test_name) {
+    Ok(event) -> {
+      assert string.contains(event, payload)
+    }
+    Error(_) -> panic as "failed to read from test file"
+  }
   let _ = simplifile.delete_file(test_name)
 }
 
