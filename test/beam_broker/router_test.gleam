@@ -21,7 +21,7 @@ pub fn main() {
 
 pub fn topics_post_get_test() {
   let test_name = "topics_post_test"
-  let extra_name = "another_one"
+  let extra_name = "topics_another_one"
   let ctx = router.Context(mock_orchestrator(test_name))
 
   // ok, duplicate, empty, another ok
@@ -90,8 +90,9 @@ pub fn consumers_post_test() {
   let _ = simplifile.delete_file(test_name)
 }
 
-pub fn publishers_post_test() {
+pub fn publishers_post_get_test() {
   let test_name = "publishers_post_test"
+  let extra_name = "publishers_another_one"
   let ctx = router.Context(mock_orchestrator(test_name))
 
   // topic not found
@@ -107,9 +108,19 @@ pub fn publishers_post_test() {
     |> simulate.form_body([#("topic_name", test_name)])
   let response = router.handle_request(req, ctx)
   assert response.status == 200
+  let req =
+    simulate.browser_request(http.Post, "/api/topics")
+    |> simulate.form_body([#("topic_name", extra_name)])
+  let response = router.handle_request(req, ctx)
+  assert response.status == 200
 
-  // ok, duplicate, empty
-  let test_cases = [#(test_name, 200), #(test_name, 400), #("", 400)]
+  // ok, duplicate, empty, another ok
+  let test_cases = [
+    #(test_name, 200),
+    #(test_name, 400),
+    #("", 400),
+    #(extra_name, 200),
+  ]
 
   test_cases
   |> list.each(fn(test_case) {
@@ -120,9 +131,17 @@ pub fn publishers_post_test() {
       |> simulate.form_body([#("topic_name", payload)])
 
     let response = router.handle_request(req, ctx)
-    assert response.status == expected_status
+    assert response.status == expected_status as simulate.read_body(response)
   })
+  let req = simulate.browser_request(http.Get, "/api/publishers/options")
+  let response = router.handle_request(req, ctx)
+  assert response.status == 200
+  let raw = simulate.read_body(response)
+  assert string.contains(raw, test_name)
+  assert string.contains(raw, extra_name)
+
   let _ = simplifile.delete_file(test_name)
+  let _ = simplifile.delete_file(extra_name)
 }
 
 pub fn publish_post_test() {

@@ -111,46 +111,30 @@ fn create_topic(
   }
 }
 
-fn new_topic(
-  name: String,
+fn create_publisher(
+  topic: String,
   state: State,
-  reply_to: Subject(Result(Nil, protocol.CreateTopicError)),
-) -> State {
-  let supervisor = factory.get_by_name(state.topic)
-  case
-    factory.start_child(
-      supervisor,
-      topic.Args(file_path: name, reply_to: state.own),
-    )
-  {
-    Ok(_) -> {
-      process.send(reply_to, Ok(Nil))
-      state
-    }
+  reply_to: Subject(Result(Nil, protocol.CreatePublisherError)),
+) {
+  case dict.get(state.topics, topic) {
+    Ok(found) ->
+      case dict.get(state.publishers, topic) {
+        Ok(_) -> {
+          logging.log(
+            logging.Warning,
+            "consumer already initialized: " <> topic,
+          )
+          process.send(reply_to, Error(protocol.PublisherAlreadyExists))
+          state
+        }
+        Error(_) -> new_publisher(topic, found, state, reply_to)
+      }
     Error(_) -> {
-      logging.log(logging.Error, "failed to start topic actor: " <> name)
-      process.send(reply_to, Error(protocol.TopicFailedToStart))
+      process.send(reply_to, Error(protocol.PublisherTargetNotFound))
+      logging.log(logging.Warning, "topic not found: " <> topic)
       state
     }
   }
-}
-
-fn register_topic(
-  name: String,
-  subject: process.Subject(protocol.TopicMessage),
-  state: State,
-) -> State {
-  let new_topics = dict.insert(state.topics, name, subject)
-  logging.log(logging.Info, "registered topic: " <> name)
-  case dict.get(state.consumers, name) {
-    Ok(found) -> process.send(found, protocol.ResyncConsumer(subject))
-    Error(_) -> Nil
-  }
-  case dict.get(state.publishers, name) {
-    Ok(found) -> process.send(found, protocol.ResyncPublisher(subject))
-    Error(_) -> Nil
-  }
-  State(..state, topics: new_topics)
 }
 
 fn create_consumer(
@@ -175,6 +159,30 @@ fn create_consumer(
     Error(_) -> {
       process.send(reply_to, Error(protocol.ConsumerTargetNotFound))
       logging.log(logging.Warning, "topic not found: " <> topic)
+      state
+    }
+  }
+}
+
+fn new_topic(
+  name: String,
+  state: State,
+  reply_to: Subject(Result(Nil, protocol.CreateTopicError)),
+) -> State {
+  let supervisor = factory.get_by_name(state.topic)
+  case
+    factory.start_child(
+      supervisor,
+      topic.Args(file_path: name, reply_to: state.own),
+    )
+  {
+    Ok(_) -> {
+      process.send(reply_to, Ok(Nil))
+      state
+    }
+    Error(_) -> {
+      logging.log(logging.Error, "failed to start topic actor: " <> name)
+      process.send(reply_to, Error(protocol.TopicFailedToStart))
       state
     }
   }
@@ -209,42 +217,6 @@ fn new_consumer(
   }
 }
 
-fn register_consumer(
-  name: String,
-  subject: process.Subject(protocol.ConsumerMessage),
-  state: State,
-) -> State {
-  let new_consumers = dict.insert(state.consumers, name, subject)
-  logging.log(logging.Info, "registered consumer: " <> name)
-  State(..state, consumers: new_consumers)
-}
-
-fn create_publisher(
-  topic: String,
-  state: State,
-  reply_to: Subject(Result(Nil, protocol.CreatePublisherError)),
-) {
-  case dict.get(state.topics, topic) {
-    Ok(found) ->
-      case dict.get(state.publishers, topic) {
-        Ok(_) -> {
-          logging.log(
-            logging.Warning,
-            "consumer already initialized: " <> topic,
-          )
-          process.send(reply_to, Error(protocol.PublisherAlreadyExists))
-          state
-        }
-        Error(_) -> new_publisher(topic, found, state, reply_to)
-      }
-    Error(_) -> {
-      process.send(reply_to, Error(protocol.PublisherTargetNotFound))
-      logging.log(logging.Warning, "topic not found: " <> topic)
-      state
-    }
-  }
-}
-
 fn new_publisher(
   name: String,
   topic: Subject(protocol.TopicMessage),
@@ -252,7 +224,12 @@ fn new_publisher(
   reply_to: Subject(Result(Nil, protocol.CreatePublisherError)),
 ) -> State {
   let supervisor = factory.get_by_name(state.publisher)
-  case factory.start_child(supervisor, publisher.Args(name, topic, state.own)) {
+  case
+    factory.start_child(
+      supervisor,
+      publisher.Args(name: name, topic: topic, reply_to: state.own),
+    )
+  {
     Ok(_) -> {
       process.send(reply_to, Ok(Nil))
       state
@@ -268,6 +245,24 @@ fn new_publisher(
   }
 }
 
+fn register_topic(
+  name: String,
+  subject: process.Subject(protocol.TopicMessage),
+  state: State,
+) -> State {
+  let new_topics = dict.insert(state.topics, name, subject)
+  logging.log(logging.Info, "registered topic: " <> name)
+  case dict.get(state.consumers, name) {
+    Ok(found) -> process.send(found, protocol.ResyncConsumer(subject))
+    Error(_) -> Nil
+  }
+  case dict.get(state.publishers, name) {
+    Ok(found) -> process.send(found, protocol.ResyncPublisher(subject))
+    Error(_) -> Nil
+  }
+  State(..state, topics: new_topics)
+}
+
 fn register_publisher(
   name: String,
   subject: Subject(protocol.PublisherMessage),
@@ -276,6 +271,16 @@ fn register_publisher(
   let new_publishers = dict.insert(state.publishers, name, subject)
   logging.log(logging.Info, "registered publisher: " <> name)
   State(..state, publishers: new_publishers)
+}
+
+fn register_consumer(
+  name: String,
+  subject: process.Subject(protocol.ConsumerMessage),
+  state: State,
+) -> State {
+  let new_consumers = dict.insert(state.consumers, name, subject)
+  logging.log(logging.Info, "registered consumer: " <> name)
+  State(..state, consumers: new_consumers)
 }
 
 fn publish(
