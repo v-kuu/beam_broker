@@ -19,12 +19,18 @@ pub fn main() {
   gleeunit.main()
 }
 
-pub fn topics_post_test() {
+pub fn topics_post_get_test() {
   let test_name = "topics_post_test"
+  let extra_name = "another_one"
   let ctx = router.Context(mock_orchestrator(test_name))
 
-  // ok, duplicate, empty
-  let test_cases = [#(test_name, 200), #(test_name, 400), #("", 400)]
+  // ok, duplicate, empty, another ok
+  let test_cases = [
+    #(test_name, 200),
+    #(test_name, 400),
+    #("", 400),
+    #(extra_name, 200),
+  ]
 
   test_cases
   |> list.each(fn(test_case) {
@@ -37,7 +43,16 @@ pub fn topics_post_test() {
     let response = router.handle_request(req, ctx)
     assert response.status == expected_status
   })
+
+  let req = simulate.browser_request(http.Get, "/api/topics/list")
+  let response = router.handle_request(req, ctx)
+  assert response.status == 200
+  let raw = simulate.read_body(response)
+  assert string.contains(raw, test_name)
+  assert string.contains(raw, extra_name)
+
   let _ = simplifile.delete_file(test_name)
+  let _ = simplifile.delete_file(extra_name)
 }
 
 pub fn consumers_post_test() {
