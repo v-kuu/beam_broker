@@ -198,6 +198,55 @@ pub fn publish_post_test() {
   let _ = simplifile.delete_file(test_name)
 }
 
+pub fn consumer_events_get_test() {
+  let test_name = "consumer_events_get_test"
+  let ctx = router.Context(mock_orchestrator(test_name))
+
+  // consumer not found
+  let req =
+    simulate.browser_request(http.Get, "/api/consumer/events")
+    |> simulate.form_body([#("consumer_name", test_name)])
+  let response = router.handle_request(req, ctx)
+  assert response.status == 400 as simulate.read_body(response)
+
+  // create topic and consumer
+  let req =
+    simulate.browser_request(http.Post, "/api/topics")
+    |> simulate.form_body([#("topic_name", test_name)])
+  let response = router.handle_request(req, ctx)
+  assert response.status == 200 as simulate.read_body(response)
+
+  let req =
+    simulate.browser_request(http.Post, "/api/consumers")
+    |> simulate.form_body([#("topic_name", test_name)])
+  let response = router.handle_request(req, ctx)
+  assert response.status == 200 as simulate.read_body(response)
+
+  // read empty
+  let payload = "Hello world!"
+  let req =
+    simulate.browser_request(http.Get, "/api/consumer/events")
+    |> simulate.form_body([#("consumer_name", test_name)])
+  let response = router.handle_request(req, ctx)
+  assert response.status == 200 as simulate.read_body(response)
+  assert !string.contains(simulate.read_body(response), payload)
+
+  // ok
+  let _ = simplifile.append(test_name, payload)
+
+  // wait for consumer to poll for the event
+  process.sleep(2000)
+
+  let req =
+    simulate.browser_request(http.Get, "/api/consumer/events")
+    |> simulate.form_body([#("consumer_name", test_name)])
+  let response = router.handle_request(req, ctx)
+  assert response.status == 200 as simulate.read_body(response)
+  assert string.contains(simulate.read_body(response), payload)
+
+  let _ = simplifile.delete_file(test_name)
+}
+
 fn mock_orchestrator(
   test_name: String,
 ) -> process.Name(protocol.BrokerMessage) {

@@ -254,10 +254,10 @@ fn list_consumers(request: Request, ctx: Context) -> Response {
 
 fn get_events(request: Request, ctx: Context) -> Response {
   use <- wisp.require_method(request, Get)
-  let query_params = wisp.get_query(request)
+  use form_data <- wisp.require_form(request)
 
   let consumer_result =
-    list.key_find(query_params, "consumer_name")
+    list.key_find(form_data.values, "consumer_name")
     |> result.map(string.trim)
 
   case consumer_result {
@@ -275,7 +275,7 @@ fn get_events(request: Request, ctx: Context) -> Response {
         Error(protocol.ConsumerNotFound) ->
           views.consumer_events_empty()
           |> element.to_string
-          |> wisp.html_response(200)
+          |> wisp.html_response(400)
       }
     }
     _ ->
