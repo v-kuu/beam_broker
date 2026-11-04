@@ -204,8 +204,10 @@ pub fn consumer_events_get_test() {
 
   // consumer not found
   let req =
-    simulate.browser_request(http.Get, "/api/consumer/events")
-    |> simulate.form_body([#("consumer_name", test_name)])
+    simulate.browser_request(
+      http.Get,
+      "/api/consumer/events?consumer_name=" <> test_name,
+    )
   let response = router.handle_request(req, ctx)
   assert response.status == 400 as simulate.read_body(response)
 
@@ -225,8 +227,10 @@ pub fn consumer_events_get_test() {
   // read empty
   let payload = "Hello world!"
   let req =
-    simulate.browser_request(http.Get, "/api/consumer/events")
-    |> simulate.form_body([#("consumer_name", test_name)])
+    simulate.browser_request(
+      http.Get,
+      "/api/consumer/events?consumer_name=" <> test_name,
+    )
   let response = router.handle_request(req, ctx)
   assert response.status == 200 as simulate.read_body(response)
   assert !string.contains(simulate.read_body(response), payload)
@@ -238,8 +242,10 @@ pub fn consumer_events_get_test() {
   process.sleep(2000)
 
   let req =
-    simulate.browser_request(http.Get, "/api/consumer/events")
-    |> simulate.form_body([#("consumer_name", test_name)])
+    simulate.browser_request(
+      http.Get,
+      "/api/consumer/events?consumer_name=" <> test_name,
+    )
   let response = router.handle_request(req, ctx)
   assert response.status == 200 as simulate.read_body(response)
   assert string.contains(simulate.read_body(response), payload)
