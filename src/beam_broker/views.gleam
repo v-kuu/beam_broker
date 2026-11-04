@@ -221,6 +221,7 @@ fn publisher_control_section() -> Element(msg) {
 }
 
 fn consumer_stream_section() -> Element(msg) {
+  let update_frequency = "1s"
   html.section([], [
     html.h2([], [element.text("Consumer Stream")]),
     html.h3([], [element.text("Live event stream")]),
@@ -239,12 +240,16 @@ fn consumer_stream_section() -> Element(msg) {
       ],
     ),
     html.div([attribute.style("margin-top", "1rem")], [
-      html.label([], [element.text("Output log:")]),
+      html.label([], [
+        element.text("Output log (" <> update_frequency <> " update interval):"),
+      ]),
       html.div(
         [
           attribute.id("event-output-box"),
           hx_get("/api/consumer/events"),
-          hx_trigger("load, change from:#consumers-select, every 2s"),
+          hx_trigger(
+            "load, change from:#consumers-select, every " <> update_frequency,
+          ),
           hx_include("#consumer-select"),
           hx_swap("innerHTML"),
           attribute.styles([
